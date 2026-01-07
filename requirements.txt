@@ -1,0 +1,19 @@
+# Core
+numpy>=1.21
+torch>=1.10
+torchvision>=0.11
+
+# Image processing
+opencv-python>=4.7
+opencv-contrib-python>=4.7
+
+# Progress bar
+tqdm>=4.64
+
+# Color science (Monk skin tone)
+colormath>=3.0
+
+# (optional but recommended)
+pillow>=9.0
+
+matplotlib>=3.5

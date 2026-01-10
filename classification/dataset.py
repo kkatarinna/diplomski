@@ -10,6 +10,7 @@ from classification import (
     get_closest_monk_tone,
 )
 from tqdm import tqdm
+import pandas as pd
 
 # Transformacije za EfficientNet-B0
 efficientnet_b0_transforms = transforms.Compose([
@@ -58,9 +59,15 @@ class ISICMonkDataset(Dataset):
         image_dir,
         output_dir,
         transform,
-        chunk_size=2
+        chunk_size=2,
+        csv_path="data/trening.csv"
     ):
         os.makedirs(output_dir, exist_ok=True)
+
+        df = pd.read_csv(csv_path)
+        label_map = dict(zip(df["image_name"], df["target"]))
+        monk_map = dict(zip(df["image_name"], df["monk_skin_tone"]))
+
 
         image_names = sorted([
             f for f in os.listdir(image_dir)
@@ -79,19 +86,24 @@ class ISICMonkDataset(Dataset):
 
             image_rgb = cv2.cvtColor(image_bgr, cv2.COLOR_BGR2RGB)
 
-            dominant_color, top_colors = colorparallel(image_rgb)
-            lightest_color = brightest_color(*top_colors[:5])
-            monk_index, _ = get_closest_monk_tone(lightest_color)
+            # dominant_color, top_colors = colorparallel(image_rgb)
+            # lightest_color = brightest_color(*top_colors[:5])
+            # monk_index, _ = get_closest_monk_tone(lightest_color)
 
             if transform:
                 image_tensor = transform(image_rgb)
             else:
                 image_tensor = torch.tensor(image_rgb).permute(2, 0, 1).float() / 255.0
 
+            name_only = os.path.splitext(image_name)[0]
+            target = int(label_map.get(name_only, 0))  # postavljanje targeta u label
+            monk_index = int(monk_map.get(name_only, 0))  # postavljanje monk tona
+
             chunk.append({
                 "image": image_tensor,
                 "monk_tone": monk_index,
-                "image_name": image_name
+                "image_name": image_name,
+                "target": target
             })
 
             if len(chunk) == chunk_size:

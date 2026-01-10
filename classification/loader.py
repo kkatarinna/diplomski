@@ -20,13 +20,15 @@ class ISICMonkIterableDataset(IterableDataset):
         for chunk_file in self.chunk_files:
             chunk = torch.load(chunk_file)
             for sample in chunk:
-                yield sample["image"], torch.tensor(sample["monk_tone"], dtype=torch.float32)
-
+                image_tensor = sample["image"]
+                monk_tone_tensor = torch.tensor([sample["monk_tone"]], dtype=torch.float32)
+                target_tensor = torch.tensor([sample["target"]], dtype=torch.float32)
+                yield image_tensor, monk_tone_tensor, target_tensor
 
 if __name__ == "__main__":
 
     dataset = ISICMonkIterableDataset("dataset/isic_monk_dataset")
     loader = DataLoader(dataset, batch_size=2)  # možeš i num_workers>0
 
-    for images, monk_tones in loader:
-        print(images.shape, monk_tones.shape, monk_tones)
+    for images, monk_tones, targets in loader:
+        print(images.shape, monk_tones)

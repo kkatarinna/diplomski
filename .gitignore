@@ -214,5 +214,4 @@ __MACOSX
 cleaning.py
 *.pth
 *.png
-results
 addmelanoma

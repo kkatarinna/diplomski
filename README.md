@@ -1,6 +1,10 @@
 # diplomski
 ISIC Challange 2020 
 
+documentation
+    - Predlog diplomskog rada - pdf
+    - Neprostrasna detekcija melanoma - rad iz predmeta Pisana i govorna komunikacija u tehnici
+
 train.py - skripta za treniranje modela
 
 predict.py - skripta za predikciju 

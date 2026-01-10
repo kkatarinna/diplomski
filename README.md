@@ -1,4 +1,7 @@
-# diplomski
+# diplomski - Katarina Krstin i Jovan Vučković
+
+## Tema: Nepristrasna detekcija melanoma
+
 ISIC Challange 2020 
 
 documentation
@@ -24,3 +27,7 @@ classification
 
 make_test_dataset
     makecsv.py - pomocna funkcija koriscena prilikom pravljenja test data seta
+
+results
+    - results.txt - metrike i rezultati
+    - predictions.csv - csv sa predikcijama modela

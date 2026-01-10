@@ -3,6 +3,8 @@ from torch.utils.data import DataLoader
 from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, confusion_matrix, roc_curve, roc_auc_score
 import seaborn as sns
 import matplotlib.pyplot as plt
+from tqdm import tqdm
+import csv
 
 from models.efficienNet import EfficientNetWithFeatures
 from classification.loader import ISICMonkIterableDataset
@@ -15,7 +17,7 @@ else:
     device = torch.device("cpu")
 
 test_dataset = ISICMonkIterableDataset(
-    "dataset/isic_monk_dataset"  # test set
+    "dataset/isic_monk_dataset_test"  # test set
 )
 test_loader = DataLoader(test_dataset, batch_size=8, shuffle=False)
 
@@ -25,7 +27,7 @@ model = EfficientNetWithFeatures(
 )
 
 model.load_state_dict(
-    torch.load("efficientnet_with_tone.pth", map_location=device)
+    torch.load("efficientnet_with_loss.pth", map_location=device)
 )
 model.to(device)
 model.eval()
@@ -34,21 +36,38 @@ all_targets = []
 all_preds = []
 all_probs = []
 
-with torch.no_grad():
-    for images, tones, targets in test_loader:
-        images = images.to(device)
-        tones = tones.to(device)
-        targets = targets.to(device)
+num_batches = 223  # broj batch-eva u test setu
 
-        outputs = model(images, tones)
 
-        probs = torch.sigmoid(outputs)
-        preds = (probs > 0.5).int()
 
-        all_targets.extend(targets.cpu().numpy())
-        all_preds.extend(preds.cpu().numpy())
-        all_probs.extend(probs.cpu().numpy())
+csv_file = "predictions.csv"
+with open(csv_file, mode='w', newline='') as f:
+    writer = csv.writer(f)
+    # pišemo header
+    writer.writerow(["target", "predicted", "probability"])
 
+    # Eval loop sa tqdm
+    num_batches = 223
+    with torch.no_grad():
+        for images, tones, targets in test_loader:
+            images = images.to(device)
+            tones = tones.to(device)
+            targets = targets.to(device)
+
+            outputs = model(images, tones)
+            probs = torch.sigmoid(outputs).squeeze(-1)
+            preds = (probs > 0.6).int()
+
+            # Upisujemo po slici u CSV
+            for t, p, pr in zip(targets.cpu().numpy(), preds.cpu().numpy(), probs.cpu().numpy()):
+                writer.writerow([int(t), int(p), float(pr)])
+
+            # Ako želiš, možeš ih i sačuvati za metrike posle
+            all_targets.extend(targets.cpu().numpy())
+            all_preds.extend(preds.cpu().numpy())
+            all_probs.extend(probs.cpu().numpy())
+
+print(f"Predictions saved to {csv_file}")
 
 accuracy = accuracy_score(all_targets, all_preds)
 precision = precision_score(all_targets, all_preds, zero_division=0)
@@ -94,7 +113,7 @@ plt.xlabel("Predicted")
 plt.ylabel("True")
 plt.title("Confusion Matrix")
 plt.show()
-plt.savefig("confusion_matrix.png", dpi=300)
+plt.savefig("confusion_matrix12_loss.png", dpi=300)
 
 # ROC Curve and AUC
 # Izračunavanje ROC curve
@@ -113,4 +132,24 @@ plt.title('ROC Curve')
 plt.legend(loc='lower right')
 plt.grid(True)
 plt.show()
-plt.savefig("roc_curve.png", dpi=300)
+plt.savefig("roc_curve12_loss.png", dpi=300)
+
+
+
+
+
+# with torch.no_grad():
+#     loop = tqdm(test_loader, total=num_batches, desc="Evaluating")
+#     for images, tones, targets in loop:
+#         images = images.to(device)
+#         tones = tones.to(device)
+#         targets = targets.to(device)
+
+#         outputs = model(images, tones)
+
+#         probs = torch.sigmoid(outputs)
+#         preds = (probs > 0.5).int()
+
+#         all_targets.extend(targets.cpu().numpy())
+#         all_preds.extend(preds.cpu().numpy())
+#         all_probs.extend(probs.cpu().numpy())

@@ -10,8 +10,8 @@ from classification import (
 )
 
 # ------------------ PUTANJE ------------------
-csv_path = "data/Training_GroundTruth.csv"
-images_root = Path("/Users/katarinakrstin/Downloads/ISIC_2020_Training_JPEG")
+csv_path = "mel_images.csv"
+images_root = Path("/Users/katarinakrstin/Downloads/MILK10k")  # folder gde su sve slike
 
 # ------------------ UČITAJ CSV ------------------
 df = pd.read_csv(csv_path)
@@ -24,7 +24,7 @@ if "monk_skin_tone" not in df.columns:
 for idx, row in tqdm(df.iterrows(), total=len(df), desc="Processing images"):
     image_name = row["image_name"]
 
-    image_path = next(images_root.rglob(f"{image_name}.jpg"), None)
+    image_path = next(images_root.rglob(f"{image_name}"), None)
     if image_path is None:
         print(f"⚠️ Slika {image_name} nije pronađena, preskačem.")
         continue

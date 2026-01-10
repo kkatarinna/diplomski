@@ -24,7 +24,7 @@ efficientnet_b0_transforms = transforms.Compose([
 ])
 
 class ISICMonkDataset(Dataset):
-    def __init__(self, image_dir, tensor_cache_path, transform=None, rebuild=False):
+    def __init__(self, image_dir, tensor_cache_path, csv_path, transform=None, rebuild=False, chunk_size=32):
         """
         image_dir: folder sa slikama
         tensor_cache_path: npr. dataset/isic_monk_dataset
@@ -33,15 +33,21 @@ class ISICMonkDataset(Dataset):
         """
         self.tensor_cache_path = tensor_cache_path
         self.image_dir = image_dir
+        self.csv_path = csv_path
         self.transform = transform  
         self.rebuild = rebuild
+        self.chunk_size = chunk_size
 
         if os.path.exists(tensor_cache_path) and not rebuild:
             print("Učitavam Tensor Dataset sa diska...")
             self.data = torch.load(tensor_cache_path)
         else:
             print("Kreiram Tensor Dataset (ovo se radi samo jednom)...")
-            self.data = self.build_in_exact_chunks(image_dir=self.image_dir, output_dir=self.tensor_cache_path, transform=self.transform, chunk_size=2)
+            self.data = self.build_in_exact_chunks(image_dir=self.image_dir, 
+                                                   output_dir=self.tensor_cache_path, 
+                                                   transform=self.transform, 
+                                                   chunk_size=self.chunk_size, 
+                                                   csv_path=self.csv_path)
             print(f"Dataset sačuvan u: {tensor_cache_path}")
 
     def __len__(self):
@@ -60,7 +66,7 @@ class ISICMonkDataset(Dataset):
         output_dir,
         transform,
         chunk_size=2,
-        csv_path="data/trening.csv"
+        csv_path="data/Training_GroundTruth_balanced.csv"
     ):
         os.makedirs(output_dir, exist_ok=True)
 
@@ -75,13 +81,14 @@ class ISICMonkDataset(Dataset):
         ])
 
         chunk = []
-        chunk_idx = 0
+        chunk_idx = 329
 
         for image_name in tqdm(image_names, desc="Processing images"):
             image_path = os.path.join(image_dir, image_name)
 
             image_bgr = cv2.imread(image_path)
             if image_bgr is None:
+                print(f"Warning: Could not read image {image_path}, skipping.")
                 continue
 
             image_rgb = cv2.cvtColor(image_bgr, cv2.COLOR_BGR2RGB)
@@ -95,9 +102,10 @@ class ISICMonkDataset(Dataset):
             else:
                 image_tensor = torch.tensor(image_rgb).permute(2, 0, 1).float() / 255.0
 
-            name_only = os.path.splitext(image_name)[0]
-            target = int(label_map.get(name_only, 0))  # postavljanje targeta u label
-            monk_index = int(monk_map.get(name_only, 0))  # postavljanje monk tona
+            # name_only = os.path.splitext(image_name)[0]
+            target = int(label_map.get(image_name, 0))  # postavljanje targeta u label
+            monk_index = int(monk_map.get(image_name, 0))  # postavljanje monk tona
+            # print(f"{image_name} -> Target: {target}, Monk tone: {monk_index}, ")
 
             chunk.append({
                 "image": image_tensor,
@@ -120,53 +128,17 @@ class ISICMonkDataset(Dataset):
                 os.path.join(output_dir, f"chunk_{chunk_idx:06d}.pt")
             )
 
-    def _build_dataset(self, image_dir, transform):
-        samples = []
-
-        image_names = sorted([
-            f for f in os.listdir(image_dir)
-            if f.endswith(".jpg") or f.endswith(".png")
-        ])
-
-        for image_name in tqdm(image_names, desc="Processing images"):
-            image_path = os.path.join(image_dir, image_name)
-
-            # Učitavanje slike
-            image_bgr = cv2.imread(image_path)
-            if image_bgr is None:
-                continue
-
-            image_rgb = cv2.cvtColor(image_bgr, cv2.COLOR_BGR2RGB)
-
-            # Ekstrakcija boje kože (TVOJ KOD)
-            dominant_color, top_colors = colorparallel(image_rgb)
-            lightest_color = brightest_color(*top_colors[:5])
-            monk_index, _ = get_closest_monk_tone(lightest_color)
-
-            print(f"{image_name} -> Monk tone: {monk_index}")
-
-            # transform u tensor
-            if transform:
-                image_tensor = transform(image_rgb)
-            else:
-                image_tensor = torch.tensor(image_rgb).permute(2, 0, 1).float() / 255.0
-
-            samples.append({
-                "image": image_tensor,
-                "monk_tone": monk_index,
-                "image_name": image_name
-            })
-
-        return samples
 
 if __name__ == "__main__":
     
 
     dataset = ISICMonkDataset(
-            image_dir="data/trening",
-            tensor_cache_path="dataset/isic_monk_dataset",
+            image_dir="/Users/katarinakrstin/Downloads/MILK10k",
+            tensor_cache_path="dataset/isic_monk_dataset_mel",
             transform=efficientnet_b0_transforms,
-            rebuild=True
+            csv_path="Test.csv",
+            rebuild=True,
+            chunk_size=32
         )
 
     # Za učitavanje bez rebuild-a

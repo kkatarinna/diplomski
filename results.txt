@@ -1,0 +1,49 @@
+MODEL TRENIRAN BEZ CUSTOM LOSS FUNKCIJOM 
+
+=== GLOBAL EVALUATION ===
+Accuracy : 0.6364
+Precision: 0.6426
+Recall   : 0.9586
+F1-score : 0.7694
+
+=== METRICS PER MONK SKIN TONE (MST) ===
+
++----------------+---------+----------+-----------+--------+----------+
+| Monk Skin Tone | Samples | Accuracy | Precision | Recall | F1-score |
++----------------+---------+----------+-----------+--------+----------+
+| 2              | 1264    | 0.7358   | 0.7496    | 0.9681 | 0.8449   |
+| 5              | 1819    | 0.6668   | 0.6751    | 0.9637 | 0.7940   |
+| 6              | 3665    | 0.5885   | 0.5898    | 0.9496 | 0.7276   |
+| 7              | 386     | 0.6244   | 0.6293    | 0.9752 | 0.7650   |
+| 8              | 11      | 0.6364   | 0.6364    | 1.0000 | 0.7778   |
+| 9              | 1       | 0.0000   | 0.0000    | 0.0000 | 0.0000   |
++----------------+---------+----------+-----------+--------+----------+
+
+MODEL TRENIRAN SA CUSTOM LOSS FUNKCIJE 
+=== GLOBAL EVALUATION ===
+Accuracy : 0.6443
+Precision: 0.6646
+Recall   : 0.8839
+F1-score : 0.7587
+
+=== METRICS PER MONK SKIN TONE (MST) ===
+
++----------------+---------+----------+-----------+--------+----------+
+| Monk Skin Tone | Samples | Accuracy | Precision | Recall | F1-score |
++----------------+---------+----------+-----------+--------+----------+
+| 2              | 1264    | 0.7310   | 0.7683    | 0.9138 | 0.8348   |
+| 5              | 1819    | 0.6718   | 0.6921    | 0.9142 | 0.7878   |
+| 6              | 3665    | 0.6041   | 0.6126    | 0.8595 | 0.7153   |
+| 7              | 386     | 0.6114   | 0.6494    | 0.8264 | 0.7273   |
+| 8              | 11      | 0.7273   | 0.7000    | 1.0000 | 0.8235   |
+| 9              | 1       | 0.0000   | 0.0000    | 0.0000 | 0.0000   |
++----------------+---------+----------+-----------+--------+----------+
+
+
+Kada se model trenira koristeci funkciju gubitka (Binary Cross-Entropy loss)
+koja dodatno ponderiše grešku u zavisnosti od Monk tona kože vidi se mali napredak
+u pravicnosti izmedju klasa.
+
+
+Rezultati za globalne metrike su takvi jer dataset koji je obezbedjen nije dobro balansiran.
+Uspeli smo da imam 12% pozitivne klase dok je ostatak bio negativan.

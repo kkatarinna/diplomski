@@ -1,7 +1,6 @@
 import numpy as np
 import cv2
 import os
-from classification.classification import colorparallel, load_images_from_folder
 from tqdm import tqdm
 import matplotlib.pyplot as plt
 
@@ -62,17 +61,6 @@ def get_image_features_hsv(image_hsv):
     }
     return features
 
-def get_skin_color(image_bgr):
-    image_rgb = cv2.cvtColor(image_bgr, cv2.COLOR_BGR2RGB)
-    dominant_color, top_colors, brightest_color, sp_image = colorparallel(
-        image_rgb,
-        region_size=70,
-        ruler=30
-    )
-
-    return rgb_to_hsv(brightest_color)
-
-
 def change_color_based_on_skin(image_hsv, skin_hsv, target_hsv):
     dH = skin_hsv[0] - target_hsv[0]
     dS = skin_hsv[1] - target_hsv[1]
@@ -89,29 +77,48 @@ def change_color_based_on_mean(image_hsv, mean_hsv, target_hsv):
     modified_image_hsv = change_image_hsv(image_hsv, -dH, -dS, -dV)
     return modified_image_hsv
 
+def load_images_from_folder(folder_path, extensions=(".jpg", ".png", ".jpeg")):
+    return [
+        os.path.join(folder_path, f)
+        for f in os.listdir(folder_path)
+        if f.lower().endswith(extensions)
+    ]
+
 if __name__ == "__main__":
-    input_images_path = "data/trening"
-    output_image_path = "skin_test/images_hsv_variations"
+    input_images_path = "skin_test/images"
+    output_image_path = "skin_test/darken"
 
     image_paths = load_images_from_folder(input_images_path)
     for img_path in tqdm(image_paths, desc=f"sledeca slika"):
         image_name = os.path.splitext(os.path.basename(img_path))[0]
 
-        image_bgr = cv2.resize(cv2.cvtColor(cv2.imread(img_path), cv2.COLOR_BGR2HSV), (300, 300))
+        image_hsv = cv2.resize(cv2.cvtColor(cv2.imread(img_path), cv2.COLOR_BGR2HSV), (300, 300))
         
-        if image_bgr is None:
+        if image_hsv is None:
             continue
 
-        image_features = get_image_features_hsv(image_bgr)
-        skin_color = (image_features['H_mean'], image_features['S_mean'], image_features['V_mean'])
-        print(skin_color)
-        for mst in monk_cv2_hsv:
-            if not os.path.exists(f"{output_image_path}/{image_name}"):
-                os.mkdir(f"{output_image_path}/{image_name}")
-            modified_image_bgr = change_color_based_on_mean(image_bgr, skin_color, mst)
-            cv2.imwrite(f"{output_image_path}/{image_name}/monk_{monk_cv2_hsv.index(mst)}.png", cv2.cvtColor(modified_image_bgr, cv2.COLOR_HSV2BGR))
-        
+        target_h = [8,9,10]
+        target_s = [100,110,120,130, 140]
+        target_v = [80, 90, 100, 140, 150, 160,170,180,190,200]
+        image_features = get_image_features_hsv(image_hsv)
+        for h in target_h:
+            if not os.path.exists(f"{output_image_path}/{image_name}/h{h}"):
+                os.makedirs(f"{output_image_path}/{image_name}/h{h}", exist_ok=True)
+            for s in target_s:
+                for v in target_v:
+                    modified_image_hsv = change_color_based_on_mean(image_hsv, (image_features['H_mean'],image_features["S_mean"],image_features["V_mean"]), (h,s,v))
+                    cv2.imwrite(f"{output_image_path}/{image_name}/h{h}/{h}_{s}_{v}.png", cv2.cvtColor(modified_image_hsv, cv2.COLOR_HSV2BGR))
+    
     # ds = [100,110,120,130,140,150,160,170,180,190,200]
+
+    #  features = {
+    #     'H_mean': np.mean(H_channel),
+    #     'H_std': np.std(H_channel),
+    #     'S_mean': np.mean(S_channel),
+    #     'S_std': np.std(S_channel),
+    #     'V_mean': np.mean(V_channel),
+    #     'V_std': np.std(V_channel),
+    # }
     # dv = [-100,-110,-120,-130,-140,-150]
 
     # for v in dv:

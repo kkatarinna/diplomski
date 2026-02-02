@@ -207,3 +207,105 @@ for tone in unique_tones:
     plt.tight_layout()
     plt.savefig(f"confusion_matrix_monk_{int(tone)}.png", dpi=300)
     plt.show()
+
+# =====================================================
+# DEMOGRAPHIC PARITY (FAIRNESS)
+# =====================================================
+print("\n=== DEMOGRAPHIC PARITY (MONK SKIN TONE 1–10) ===")
+
+demographic_parity = {}
+
+all_tones_np = np.array(all_tones)
+all_preds_np = np.array(all_preds)
+
+for tone in sorted(unique_tones):
+    idx = np.where(all_tones_np == tone)[0]
+
+    if len(idx) == 0:
+        continue
+
+    # P(ŷ = 1 | A = tone)
+    dp = all_preds_np[idx].mean()
+
+    demographic_parity[int(tone)] = {
+        "dp": dp,
+        "samples": len(idx)
+    }
+
+    print(
+        f"Monk {int(tone):2d} | "
+        f"Samples: {len(idx):4d} | "
+        f"Demographic Parity P(ŷ=1): {dp:.4f}"
+    )
+
+# =====================================================
+# DEMOGRAPHIC PARITY GAP
+# =====================================================
+dp_values = [v["dp"] for v in demographic_parity.values()]
+
+dp_gap = max(dp_values) - min(dp_values)
+dp_std = np.std(dp_values)
+
+print("\n=== DEMOGRAPHIC PARITY SUMMARY ===")
+print(f"Demographic Parity Gap (max - min): {dp_gap:.4f}")
+print(f"Demographic Parity Std Dev       : {dp_std:.4f}")
+
+# =====================================================
+# EQUAL OPPORTUNITY (FAIRNESS)
+# =====================================================
+print("\n=== EQUAL OPPORTUNITY (TPR) – MONK SKIN TONE 1–10 ===")
+
+equal_opportunity = {}
+
+all_targets_np = np.array(all_targets).astype(int).reshape(-1)
+all_preds_np = np.array(all_preds).astype(int).reshape(-1)
+all_tones_np = np.array(all_tones).astype(int).reshape(-1)
+
+for tone in sorted(unique_tones):
+    idx = np.where(all_tones_np == tone)[0]
+
+    if len(idx) == 0:
+        continue
+
+    y_true = all_targets_np[idx]
+    y_pred = all_preds_np[idx]
+
+    # Samo stvarno pozitivni slučajevi
+    positives = y_true == 1
+
+    if positives.sum() == 0:
+        tpr = np.nan  # nema smisla računati
+    else:
+        tpr = (y_pred[positives] == 1).mean()
+
+    equal_opportunity[int(tone)] = {
+        "tpr": tpr,
+        "positives": positives.sum(),
+        "samples": len(idx)
+    }
+
+    print(
+        f"Monk {int(tone):2d} | "
+        f"Samples: {len(idx):4d} | "
+        f"Positives: {positives.sum():3d} | "
+        f"TPR: {'N/A' if np.isnan(tpr) else f'{tpr:.4f}'}"
+    )
+
+
+# =====================================================
+# EQUAL OPPORTUNITY GAP
+# =====================================================
+tpr_values = [
+    v["tpr"] for v in equal_opportunity.values()
+    if not np.isnan(v["tpr"])
+]
+
+if len(tpr_values) > 0:
+    eo_gap = max(tpr_values) - min(tpr_values)
+    eo_std = np.std(tpr_values)
+
+    print("\n=== EQUAL OPPORTUNITY SUMMARY ===")
+    print(f"Equal Opportunity Gap (max - min): {eo_gap:.4f}")
+    print(f"Equal Opportunity Std Dev       : {eo_std:.4f}")
+else:
+    print("\nNo valid TPR values to compute Equal Opportunity.")

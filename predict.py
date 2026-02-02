@@ -5,6 +5,7 @@ import seaborn as sns
 import matplotlib.pyplot as plt
 from tqdm import tqdm
 import csv
+import numpy as np
 
 from models.efficienNet import EfficientNetWithFeatures
 from classification.loader import ISICMonkIterableDataset
@@ -35,10 +36,9 @@ model.eval()
 all_targets = []
 all_preds = []
 all_probs = []
+all_tones = []
 
 num_batches = 223  # broj batch-eva u test setu
-
-
 
 csv_file = "predictions.csv"
 with open(csv_file, mode='w', newline='') as f:
@@ -59,13 +59,18 @@ with open(csv_file, mode='w', newline='') as f:
             preds = (probs > 0.6).int()
 
             # Upisujemo po slici u CSV
-            for t, p, pr in zip(targets.cpu().numpy(), preds.cpu().numpy(), probs.cpu().numpy()):
+            for t, p, pr, tone in zip(targets.cpu().numpy(), preds.cpu().numpy(), probs.cpu().numpy(), tones.cpu().numpy()):
                 writer.writerow([int(t), int(p), float(pr)])
 
             # Ako želiš, možeš ih i sačuvati za metrike posle
             all_targets.extend(targets.cpu().numpy())
             all_preds.extend(preds.cpu().numpy())
             all_probs.extend(probs.cpu().numpy())
+
+            all_targets.append(int(t))
+            all_preds.append(int(p))
+            all_probs.append(float(pr))
+            all_tones.append(int(tone))
 
 print(f"Predictions saved to {csv_file}")
 
@@ -134,6 +139,44 @@ plt.grid(True)
 plt.show()
 plt.savefig("roc_curve12_loss.png", dpi=300)
 
+
+##FAIRNESS ANALYSIS
+fairness = {}
+print("\nFairness evaluation per Monk Skin Tone:")
+
+for tone in range(1, 11):
+    idx = [i for i, t in enumerate(all_tones) if t == tone]
+
+    if len(idx) == 0:
+        print(f"Monk {tone}: no samples")
+        continue
+
+    y = np.array([all_targets[i] for i in idx])
+    y_hat = np.array([all_preds[i] for i in idx])
+
+    # Demographic Parity
+    dp = y_hat.mean()
+
+    # Equal Opportunity (TPR)
+    positives = y == 1
+    if positives.sum() > 0:
+        tpr = (y_hat[positives] == 1).mean()
+    else:
+        tpr = np.nan
+
+    fairness[tone] = {
+        "dp": dp,
+        "tpr": tpr,
+        "support": len(idx),
+        "positives": positives.sum()
+    }
+
+    print(
+        f"Monk {tone:2d} | "
+        f"DP: {dp:.4f} | "
+        f"TPR: {tpr if not np.isnan(tpr) else 'N/A'} | "
+        f"Samples: {len(idx)}"
+    )
 
 
 
